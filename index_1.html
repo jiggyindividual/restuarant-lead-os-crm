@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAD OS — AI Receptionist CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0A0A0F;
+  --bg2: #111118;
+  --bg3: #18181F;
+  --bg4: #1E1E28;
+  --border: #2A2A38;
+  --border2: #353545;
+  --accent: #C8FF00;
+  --accent2: #7B61FF;
+  --accent3: #FF6B35;
+  --text: #F0F0F8;
+  --text2: #9090A8;
+  --text3: #5A5A70;
+  --hot: #FF4545;
+  --warm: #FF9A00;
+  --cold: #4A90E2;
+  --closed: #C8FF00;
+  --dead: #444458;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+  --r: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
+
+/* SCANLINE EFFECT */
+body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px); pointer-events: none; z-index: 9999; }
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 100;
+}
+.logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-text { font-family: var(--font-display); font-size: 28px; color: var(--accent); letter-spacing: 2px; line-height: 1; }
+.logo-sub { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .15em; margin-top: 4px; }
+.nav { padding: 16px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: var(--r); cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--text2); transition: all .15s; border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--bg4); color: var(--accent); border: 1px solid var(--border2); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-stats { padding: 16px; border-top: 1px solid var(--border); }
+.ss-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .1em; margin-bottom: 8px; }
+.ss-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.ss-key { font-size: 11px; color: var(--text2); }
+.ss-val { font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-weight: 500; }
+
+/* MAIN */
+.main { margin-left: 220px; min-height: 100vh; }
+.topbar {
+  height: 60px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-family: var(--font-display); font-size: 22px; color: var(--text); letter-spacing: 1px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+  border-radius: var(--r); font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--bg3); color: var(--text);
+  transition: all .15s; font-family: var(--font-body); letter-spacing: .02em;
+}
+.btn:hover { border-color: var(--accent2); color: var(--accent2); }
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.primary:hover { background: #d4ff1a; }
+.btn.danger { border-color: var(--hot); color: var(--hot); }
+.btn.danger:hover { background: rgba(255,69,69,.1); }
+
+.content { padding: 28px; }
+
+/* VIEWS */
+.view { display: none; }
+.view.active { display: block; }
+
+/* DASHBOARD */
+.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px; position: relative; overflow: hidden;
+}
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent-line, var(--border)); }
+.kpi.hot::before { --accent-line: var(--hot); }
+.kpi.warm::before { --accent-line: var(--warm); }
+.kpi.closed::before { --accent-line: var(--closed); }
+.kpi.revenue::before { --accent-line: var(--accent2); }
+.kpi-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; }
+.kpi-val { font-family: var(--font-display); font-size: 36px; color: var(--text); line-height: 1; margin-bottom: 4px; }
+.kpi-sub { font-size: 11px; color: var(--text3); }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: .15em; text-transform: uppercase; }
+
+/* CHARTS */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; }
+.chart-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 16px; font-family: var(--font-mono); letter-spacing: .08em; }
+.bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 11px; color: var(--text2); width: 80px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 8px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+.bar-count { font-size: 11px; font-family: var(--font-mono); color: var(--text2); width: 24px; text-align: right; }
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.dl-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); }
+.dl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* LEAD TABLE */
+.table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.table-toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search-box {
+  display: flex; align-items: center; gap: 8px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: var(--r); padding: 7px 12px; flex: 1; min-width: 200px;
+}
+.search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; font-family: var(--font-body); width: 100%; }
+.search-box input::placeholder { color: var(--text3); }
+.filter-select {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 7px 10px; color: var(--text); font-size: 12px; font-family: var(--font-body);
+  outline: none; cursor: pointer;
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+thead th {
+  text-align: left; padding: 10px 14px; color: var(--text3); font-size: 10px;
+  font-family: var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); background: var(--bg3); font-weight: 500;
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+thead th:hover { color: var(--text2); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg3); }
+td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+td.muted { color: var(--text3); }
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+  border-radius: 20px; font-size: 10px; font-weight: 600; font-family: var(--font-mono);
+  letter-spacing: .05em; white-space: nowrap;
+}
+.badge::before { content: '●'; font-size: 6px; }
+.badge-hot { background: rgba(255,69,69,.15); color: var(--hot); }
+.badge-warm { background: rgba(255,154,0,.15); color: var(--warm); }
+.badge-cold { background: rgba(74,144,226,.15); color: var(--cold); }
+.badge-closed { background: rgba(200,255,0,.15); color: var(--closed); }
+.badge-dead { background: rgba(68,68,88,.3); color: #666688; }
+.badge-yes { background: rgba(200,255,0,.1); color: var(--closed); }
+.badge-no { background: rgba(255,69,69,.1); color: var(--hot); }
+.biz-name { font-weight: 600; color: var(--text); }
+.biz-cat { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+.phone-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent2); }
+.rating-wrap { display: flex; align-items: center; gap: 4px; }
+.stars { color: var(--warm); font-size: 11px; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+.empty-title { font-size: 16px; color: var(--text2); margin-bottom: 6px; font-family: var(--font-mono); }
+.empty-sub { font-size: 13px; }
+.pagination { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); justify-content: space-between; }
+.page-info { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+
+/* IMPORT VIEW */
+.import-zone {
+  border: 2px dashed var(--border2); border-radius: var(--r); padding: 40px;
+  text-align: center; margin-bottom: 20px; transition: all .2s; cursor: pointer;
+}
+.import-zone:hover, .import-zone.dragover { border-color: var(--accent); background: rgba(200,255,0,.03); }
+.import-zone-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+.import-zone-title { font-size: 16px; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+.import-zone-sub { font-size: 13px; color: var(--text3); }
+.csv-textarea {
+  width: 100%; height: 200px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-family: var(--font-mono); font-size: 11px;
+  padding: 14px; outline: none; resize: vertical; margin-bottom: 12px;
+}
+.csv-textarea::placeholder { color: var(--text3); }
+.field-map { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+.field-map-title { font-size: 12px; font-family: var(--font-mono); color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 14px; }
+.field-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-bottom: 10px; }
+.field-label { font-size: 12px; color: var(--text2); font-family: var(--font-mono); }
+.field-arrow { color: var(--text3); font-size: 14px; }
+.field-select {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+  padding: 6px 10px; color: var(--text); font-size: 12px; font-family: var(--font-mono); outline: none; width: 100%;
+}
+.import-preview { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+.preview-count { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.preview-count span { color: var(--accent); font-weight: 600; font-family: var(--font-mono); }
+
+/* LEAD DETAIL MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px;
+  width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto;
+  animation: modalIn .2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes modalIn { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
+.modal-head {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.modal-biz { font-family: var(--font-display); font-size: 24px; color: var(--text); letter-spacing: .5px; }
+.modal-cat { font-size: 11px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; }
+.modal-close { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text2); font-size: 14px; flex-shrink: 0; }
+.modal-close:hover { color: var(--text); border-color: var(--text2); }
+.modal-body { padding: 20px 24px; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.modal-field { background: var(--bg3); border-radius: var(--r); padding: 12px 14px; }
+.mf-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+.mf-val { font-size: 13px; color: var(--text); font-weight: 500; }
+.mf-val a { color: var(--accent2); text-decoration: none; }
+.mf-val a:hover { text-decoration: underline; }
+.modal-section { margin-bottom: 16px; }
+.modal-section-title { font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.modal-select, .modal-input, .modal-textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 9px 12px; color: var(--text); font-size: 13px; font-family: var(--font-body);
+  outline: none; transition: border-color .15s;
+}
+.modal-select:focus, .modal-input:focus, .modal-textarea:focus { border-color: var(--accent2); }
+.modal-textarea { height: 80px; resize: vertical; }
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.modal-field-wrap { margin-bottom: 10px; }
+.modal-field-wrap label { display: block; font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .08em; margin-bottom: 5px; }
+.modal-actions { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ADD LEAD FORM */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-field { }
+.form-field label { display: block; font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .08em; margin-bottom: 5px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 9px 12px; color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none;
+  transition: border-color .15s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent2); }
+.form-textarea { height: 80px; resize: vertical; }
+.form-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+.form-section-title { font-size: 11px; color: var(--text3); font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px; }
+
+/* PIPELINE VIEW */
+.pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: start; }
+.pipeline-col { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); }
+.pipeline-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.pipeline-head-name { font-size: 11px; font-weight: 600; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.pipeline-count { font-size: 10px; background: var(--bg4); padding: 2px 7px; border-radius: 20px; font-family: var(--font-mono); color: var(--text2); }
+.pipeline-cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+.pipeline-card {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+  padding: 10px 12px; cursor: pointer; transition: all .15s;
+}
+.pipeline-card:hover { border-color: var(--border); background: var(--bg4); transform: translateY(-1px); }
+.pc-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.pc-cat { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 6px; }
+.pc-meta { display: flex; align-items: center; justify-content: space-between; }
+.pc-phone { font-size: 10px; color: var(--accent2); font-family: var(--font-mono); }
+.pc-val { font-size: 10px; color: var(--closed); font-family: var(--font-mono); font-weight: 600; }
+.pipeline-value { padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); font-family: var(--font-mono); display: flex; justify-content: space-between; }
+.pipeline-value span { color: var(--accent); }
+
+/* NOTIFICATIONS */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 12px 16px; font-size: 13px; color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  animation: toastIn .3s cubic-bezier(.4,0,.2,1); max-width: 320px;
+}
+.toast.success { border-color: var(--closed); }
+.toast.error { border-color: var(--hot); }
+@keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* RESPONSIVE HELPERS */
+.hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-text">LEAD OS</div>
+    <div class="logo-sub">AI RECEPTIONIST CRM</div>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" onclick="showView('dashboard')"><span class="nav-icon">⬛</span> Dashboard</button>
+    <button class="nav-item" onclick="showView('leads')"><span class="nav-icon">◈</span> All Leads</button>
+    <button class="nav-item" onclick="showView('pipeline')"><span class="nav-icon">◫</span> Pipeline</button>
+    <button class="nav-item" onclick="showView('import')"><span class="nav-icon">⊕</span> Import CSV</button>
+    <button class="nav-item" onclick="showView('add')"><span class="nav-icon">+</span> Add Lead</button>
+  </nav>
+  <div class="sidebar-stats">
+    <div class="ss-label">QUICK STATS</div>
+    <div class="ss-row"><span class="ss-key">Total leads</span><span class="ss-val" id="sb-total">0</span></div>
+    <div class="ss-row"><span class="ss-key">Hot leads</span><span class="ss-val" id="sb-hot">0</span></div>
+    <div class="ss-row"><span class="ss-key">Won</span><span class="ss-val" id="sb-closed">0</span></div>
+    <div class="ss-row"><span class="ss-key">Revenue MRR</span><span class="ss-val" id="sb-mrr">$0</span></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+    <div class="topbar-right">
+      <button class="btn" onclick="exportCSV()">⬇ Export</button>
+      <button class="btn danger" onclick="clearAllLeads()">✕ Clear All</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="view-dashboard" class="view active">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Total Leads</div>
+          <div class="kpi-val" id="kpi-total">0</div>
+          <div class="kpi-sub">in database</div>
+        </div>
+        <div class="kpi hot">
+          <div class="kpi-label">Hot Leads</div>
+          <div class="kpi-val" id="kpi-hot">0</div>
+          <div class="kpi-sub">ready to close</div>
+        </div>
+        <div class="kpi warm">
+          <div class="kpi-label">No Website</div>
+          <div class="kpi-val" id="kpi-noweb">0</div>
+          <div class="kpi-sub">prime targets</div>
+        </div>
+        <div class="kpi closed">
+          <div class="kpi-label">Deals Won</div>
+          <div class="kpi-val" id="kpi-closed">0</div>
+          <div class="kpi-sub">clients</div>
+        </div>
+        <div class="kpi revenue">
+          <div class="kpi-label">MRR</div>
+          <div class="kpi-val" id="kpi-mrr">$0</div>
+          <div class="kpi-sub">recurring / mo</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">LEADS BY TEMPERATURE</div>
+          <div class="bar-chart" id="temp-chart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">TOP NICHES</div>
+          <div class="bar-chart" id="niche-chart"></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-title">Recent Activity</div>
+        <button class="btn" onclick="showView('leads')">View All →</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Business</th><th>Category</th><th>Rating</th><th>Website</th><th>Status</th><th>Added</th>
+            </tr></thead>
+            <tbody id="recent-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS TABLE -->
+    <div id="view-leads" class="view">
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="search-box">
+            <span style="color:var(--text3)">⌕</span>
+            <input type="text" id="search-input" placeholder="Search business, city, category..." oninput="renderLeads()">
+          </div>
+          <select class="filter-select" id="f-temp" onchange="renderLeads()">
+            <option value="">All temps</option>
+            <option value="hot">Hot</option>
+            <option value="warm">Warm</option>
+            <option value="cold">Cold</option>
+            <option value="closed">Closed</option>
+            <option value="dead">Dead</option>
+          </select>
+          <select class="filter-select" id="f-web" onchange="renderLeads()">
+            <option value="">All website status</option>
+            <option value="no">No website</option>
+            <option value="yes">Has website</option>
+          </select>
+          <select class="filter-select" id="f-service" onchange="renderLeads()">
+            <option value="">All services</option>
+            <option value="receptionist">AI Receptionist</option>
+            <option value="website">AI Website</option>
+            <option value="both">Both</option>
+          </select>
+          <select class="filter-select" id="f-city" onchange="renderLeads()">
+            <option value="">All cities</option>
+          </select>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th onclick="sortBy('name')">Business ↕</th>
+              <th onclick="sortBy('category')">Category ↕</th>
+              <th>Phone</th>
+              <th onclick="sortBy('rating')">Rating ↕</th>
+              <th>Website</th>
+              <th onclick="sortBy('temp')">Temp ↕</th>
+              <th>Service</th>
+              <th>City</th>
+              <th>Notes</th>
+            </tr></thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="page-info" id="page-info"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn" id="prev-btn" onclick="prevPage()">← Prev</button>
+            <button class="btn" id="next-btn" onclick="nextPage()">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div id="view-pipeline" class="view">
+      <div class="pipeline" id="pipeline-board"></div>
+    </div>
+
+    <!-- IMPORT -->
+    <div id="view-import" class="view">
+      <div class="form-section">
+        <div class="form-section-title">PASTE OUTSCRAPER CSV DATA</div>
+        <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()">
+          <div class="import-zone-icon">⬆</div>
+          <div class="import-zone-title">Drop CSV file here or click to browse</div>
+          <div class="import-zone-sub">Supports Outscraper Google Maps export format</div>
+          <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFile(event)">
+        </div>
+        <div style="text-align:center;color:var(--text3);font-size:12px;margin-bottom:12px">— or paste CSV text directly —</div>
+        <textarea class="csv-textarea" id="csv-paste" placeholder="Paste your Outscraper CSV export here...&#10;&#10;The first row should be headers. Common Outscraper columns:&#10;name, phone, website, rating, reviews, category, city, full_address, etc."></textarea>
+        <button class="btn primary" onclick="parseCSV()" style="width:100%;justify-content:center;padding:10px">Parse CSV →</button>
+      </div>
+
+      <div id="import-preview" class="hide">
+        <div class="import-preview">
+          <div class="preview-count">Found <span id="preview-count">0</span> records ready to import</div>
+          <div id="preview-table-wrap"></div>
+        </div>
+        <div class="field-map" id="field-map">
+          <div class="field-map-title">COLUMN MAPPING — MAP YOUR CSV COLUMNS TO CRM FIELDS</div>
+          <div id="field-map-rows"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn" onclick="document.getElementById('import-preview').classList.add('hide')">← Back</button>
+          <button class="btn primary" onclick="importLeads()" style="flex:1;justify-content:center">Import Leads →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD LEAD -->
+    <div id="view-add" class="view">
+      <div class="form-section">
+        <div class="form-section-title">BUSINESS INFO</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Business Name *</label><input class="form-input" id="f-name" placeholder="e.g. Peach State BBQ"></div>
+          <div class="form-field"><label>Category / Niche</label><input class="form-input" id="f-category" placeholder="e.g. Restaurant"></div>
+          <div class="form-field"><label>Phone</label><input class="form-input" id="f-phone" placeholder="(404) 555-0100"></div>
+          <div class="form-field"><label>Owner Name</label><input class="form-input" id="f-owner" placeholder="e.g. Marcus Johnson"></div>
+          <div class="form-field"><label>Email</label><input class="form-input" id="f-email" placeholder="owner@business.com"></div>
+          <div class="form-field"><label>City</label><input class="form-input" id="f-city2" placeholder="e.g. Atlanta, GA"></div>
+          <div class="form-field"><label>Address</label><input class="form-input" id="f-address" placeholder="Full address"></div>
+          <div class="form-field"><label>Website URL</label><input class="form-input" id="f-website" placeholder="Leave blank if no website"></div>
+          <div class="form-field"><label>Google Rating</label><input class="form-input" id="f-rating" type="number" min="1" max="5" step="0.1" placeholder="4.5"></div>
+          <div class="form-field"><label>Review Count</label><input class="form-input" id="f-reviews" type="number" placeholder="127"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">SALES INFO</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Lead Temperature</label>
+            <select class="form-select" id="f-temp2">
+              <option value="cold">Cold</option><option value="warm">Warm</option>
+              <option value="hot">Hot</option><option value="closed">Closed</option><option value="dead">Dead</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Interested In</label>
+            <select class="form-select" id="f-interest">
+              <option value="">Not sure yet</option>
+              <option value="receptionist">AI Receptionist ($497/mo)</option>
+              <option value="website">AI Website ($800/mo)</option>
+              <option value="both">Both ($1,197/mo)</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Follow-up Date</label><input class="form-input" id="f-followup" type="date"></div>
+          <div class="form-field"><label>Deal Value ($/mo)</label><input class="form-input" id="f-value" type="number" placeholder="497"></div>
+        </div>
+        <div class="form-field" style="margin-bottom:0"><label>Notes</label><textarea class="form-textarea" id="f-notes" placeholder="Call notes, objections, next steps..."></textarea></div>
+      </div>
+      <button class="btn primary" onclick="addLead()" style="width:100%;justify-content:center;padding:12px;font-size:14px">Add Lead to CRM →</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-biz" id="modal-biz"></div>
+        <div class="modal-cat" id="modal-cat"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid" id="modal-info-grid"></div>
+      <div class="modal-section">
+        <div class="modal-section-title">UPDATE LEAD</div>
+        <div class="modal-row">
+          <div class="modal-field-wrap">
+            <label>Temperature</label>
+            <select class="modal-select" id="m-temp">
+              <option value="cold">Cold</option><option value="warm">Warm</option>
+              <option value="hot">Hot</option><option value="closed">Closed (Won)</option><option value="dead">Dead</option>
+            </select>
+          </div>
+          <div class="modal-field-wrap">
+            <label>Interested In</label>
+            <select class="modal-select" id="m-interest">
+              <option value="">Not sure</option>
+              <option value="receptionist">AI Receptionist ($497/mo)</option>
+              <option value="website">AI Website ($800/mo)</option>
+              <option value="both">Both ($1,197/mo)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-field-wrap">
+            <label>Follow-up Date</label>
+            <input type="date" class="modal-input" id="m-followup">
+          </div>
+          <div class="modal-field-wrap">
+            <label>Deal Value ($/mo)</label>
+            <input type="number" class="modal-input" id="m-value" placeholder="497">
+          </div>
+        </div>
+        <div class="modal-field-wrap">
+          <label>Notes</label>
+          <textarea class="modal-textarea" id="m-notes" placeholder="Call notes, objections, next steps..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" onclick="deleteLead()">Delete Lead</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveLead()">Save Changes →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── STATE ──
+let leads = JSON.parse(localStorage.getItem('leados_leads') || '[]');
+let currentSort = { col: 'addedAt', dir: -1 };
+let currentPage = 0;
+const PAGE_SIZE = 25;
+let editingId = null;
+let csvRows = [];
+let csvHeaders = [];
+let fieldMap = {};
+
+function save() { localStorage.setItem('leados_leads', JSON.stringify(leads)); updateSidebar(); }
+
+// ── NAVIGATION ──
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-item')[['dashboard','leads','pipeline','import','add'].indexOf(v)].classList.add('active');
+  document.getElementById('topbar-title').textContent = {
+    dashboard: 'DASHBOARD', leads: 'ALL LEADS', pipeline: 'PIPELINE',
+    import: 'IMPORT CSV', add: 'ADD LEAD'
+  }[v];
+  if (v === 'dashboard') renderDashboard();
+  if (v === 'leads') { populateCityFilter(); renderLeads(); }
+  if (v === 'pipeline') renderPipeline();
+}
+
+// ── SIDEBAR STATS ──
+function updateSidebar() {
+  const hot = leads.filter(l => l.temp === 'hot').length;
+  const closed = leads.filter(l => l.temp === 'closed').length;
+  const mrr = leads.filter(l => l.temp === 'closed').reduce((s, l) => s + (Number(l.value) || 0), 0);
+  document.getElementById('sb-total').textContent = leads.length;
+  document.getElementById('sb-hot').textContent = hot;
+  document.getElementById('sb-closed').textContent = closed;
+  document.getElementById('sb-mrr').textContent = '$' + mrr.toLocaleString();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const total = leads.length;
+  const hot = leads.filter(l => l.temp === 'hot').length;
+  const noweb = leads.filter(l => !l.website).length;
+  const closed = leads.filter(l => l.temp === 'closed').length;
+  const mrr = leads.filter(l => l.temp === 'closed').reduce((s, l) => s + (Number(l.value) || 0), 0);
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-hot').textContent = hot;
+  document.getElementById('kpi-noweb').textContent = noweb;
+  document.getElementById('kpi-closed').textContent = closed;
+  document.getElementById('kpi-mrr').textContent = '$' + mrr.toLocaleString();
+
+  // Temp chart
+  const temps = [{k:'hot',label:'Hot',color:'var(--hot)'},{k:'warm',label:'Warm',color:'var(--warm)'},{k:'cold',label:'Cold',color:'var(--cold)'},{k:'closed',label:'Closed',color:'var(--closed)'},{k:'dead',label:'Dead',color:'var(--dead)'}];
+  const maxT = Math.max(1, ...temps.map(t => leads.filter(l=>l.temp===t.k).length));
+  document.getElementById('temp-chart').innerHTML = temps.map(t => {
+    const c = leads.filter(l=>l.temp===t.k).length;
+    return `<div class="bar-row"><div class="bar-label">${t.label}</div><div class="bar-track"><div class="bar-fill" style="width:${c/maxT*100}%;background:${t.color}"></div></div><div class="bar-count">${c}</div></div>`;
+  }).join('');
+
+  // Niche chart
+  const cats = {};
+  leads.forEach(l => { if (l.category) cats[l.category] = (cats[l.category]||0)+1; });
+  const topCats = Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxC = Math.max(1, ...(topCats.map(c=>c[1])));
+  document.getElementById('niche-chart').innerHTML = topCats.length ? topCats.map(([cat,cnt]) =>
+    `<div class="bar-row"><div class="bar-label" style="font-size:10px">${cat.length>12?cat.slice(0,12)+'…':cat}</div><div class="bar-track"><div class="bar-fill" style="width:${cnt/maxC*100}%;background:var(--accent2)"></div></div><div class="bar-count">${cnt}</div></div>`
+  ).join('') : '<div style="color:var(--text3);font-size:12px">No data yet</div>';
+
+  // Recent
+  const recent = [...leads].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)).slice(0,8);
+  document.getElementById('recent-tbody').innerHTML = recent.length ? recent.map(l => `
+    <tr onclick="openModal('${l.id}')">
+      <td><div class="biz-name">${l.name||'—'}</div></td>
+      <td class="muted">${l.category||'—'}</td>
+      <td><div class="rating-wrap"><span class="stars">★</span> ${l.rating||'—'}</div></td>
+      <td>${l.website ? `<span class="badge badge-yes">YES</span>` : `<span class="badge badge-no">NONE</span>`}</td>
+      <td>${tempBadge(l.temp)}</td>
+      <td class="muted">${l.addedAt ? new Date(l.addedAt).toLocaleDateString() : '—'}</td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No leads yet</div><div class="empty-sub">Import a CSV or add leads manually</div></div></td></tr>`;
+  updateSidebar();
+}
+
+// ── LEADS TABLE ──
+function populateCityFilter() {
+  const cities = [...new Set(leads.map(l=>l.city).filter(Boolean))].sort();
+  const sel = document.getElementById('f-city');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All cities</option>' + cities.map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
+}
+
+function getFiltered() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const ft = document.getElementById('f-temp').value;
+  const fw = document.getElementById('f-web').value;
+  const fs = document.getElementById('f-service').value;
+  const fc = document.getElementById('f-city').value;
+  return leads.filter(l => {
+    if (q && !`${l.name} ${l.category} ${l.city} ${l.phone}`.toLowerCase().includes(q)) return false;
+    if (ft && l.temp !== ft) return false;
+    if (fw === 'no' && l.website) return false;
+    if (fw === 'yes' && !l.website) return false;
+    if (fs && l.interest !== fs) return false;
+    if (fc && l.city !== fc) return false;
+    return true;
+  }).sort((a,b) => {
+    const av = a[currentSort.col] || '';
+    const bv = b[currentSort.col] || '';
+    return av < bv ? currentSort.dir : av > bv ? -currentSort.dir : 0;
+  });
+}
+
+function sortBy(col) {
+  if (currentSort.col === col) currentSort.dir *= -1;
+  else { currentSort.col = col; currentSort.dir = 1; }
+  renderLeads();
+}
+
+function renderLeads() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const start = currentPage * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
+  document.getElementById('page-info').textContent = total ? `${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}` : '0 results';
+  document.getElementById('prev-btn').disabled = currentPage === 0;
+  document.getElementById('next-btn').disabled = start + PAGE_SIZE >= total;
+  const interestLabel = {receptionist:'AI Receptionist',website:'AI Website',both:'Both'};
+  document.getElementById('leads-tbody').innerHTML = page.length ? page.map(l => `
+    <tr onclick="openModal('${l.id}')">
+      <td><div class="biz-name">${l.name||'—'}</div>${l.owner?`<div class="biz-cat">${l.owner}</div>`:''}</td>
+      <td class="muted" style="font-size:11px">${l.category||'—'}</td>
+      <td><div class="phone-num">${l.phone||'—'}</div></td>
+      <td><div class="rating-wrap"><span class="stars">★</span> ${l.rating||'—'}<span style="color:var(--text3);font-size:10px;margin-left:3px">(${l.reviews||0})</span></div></td>
+      <td>${l.website ? `<span class="badge badge-yes">YES</span>` : `<span class="badge badge-no">NONE</span>`}</td>
+      <td>${tempBadge(l.temp)}</td>
+      <td style="font-size:11px;color:var(--text2)">${interestLabel[l.interest]||'—'}</td>
+      <td class="muted" style="font-size:11px">${l.city||'—'}</td>
+      <td style="font-size:11px;color:var(--text3);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.notes||'—'}</td>
+    </tr>`).join('') : `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">No leads match filters</div><div class="empty-sub">Try adjusting your search or filters</div></div></td></tr>`;
+}
+
+function prevPage() { if (currentPage > 0) { currentPage--; renderLeads(); } }
+function nextPage() { const filtered = getFiltered(); if ((currentPage+1)*PAGE_SIZE < filtered.length) { currentPage++; renderLeads(); } }
+
+// ── PIPELINE ──
+function renderPipeline() {
+  const cols = [
+    {k:'cold',label:'COLD',color:'var(--cold)'},
+    {k:'warm',label:'WARM',color:'var(--warm)'},
+    {k:'hot',label:'HOT',color:'var(--hot)'},
+    {k:'closed',label:'CLOSED',color:'var(--closed)'},
+    {k:'dead',label:'DEAD',color:'var(--dead)'},
+  ];
+  const interestVal = {receptionist:497,website:800,both:1197};
+  document.getElementById('pipeline-board').innerHTML = cols.map(col => {
+    const colLeads = leads.filter(l=>l.temp===col.k);
+    const val = colLeads.reduce((s,l)=>s+(Number(l.value)||interestVal[l.interest]||0),0);
+    return `<div class="pipeline-col">
+      <div class="pipeline-head" style="border-top:3px solid ${col.color}">
+        <span class="pipeline-head-name" style="color:${col.color}">${col.label}</span>
+        <span class="pipeline-count">${colLeads.length}</span>
+      </div>
+      <div class="pipeline-cards">
+        ${colLeads.length ? colLeads.map(l=>`
+          <div class="pipeline-card" onclick="openModal('${l.id}')">
+            <div class="pc-name">${l.name||'—'}</div>
+            <div class="pc-cat">${l.category||''}${l.city?' · '+l.city:''}</div>
+            <div class="pc-meta">
+              <span class="pc-phone">${l.phone||'—'}</span>
+              <span class="pc-val">${l.value?'$'+Number(l.value).toLocaleString()+'/mo':l.interest?{receptionist:'$497',website:'$800',both:'$1,197'}[l.interest]+'/mo':'—'}</span>
+            </div>
+          </div>`).join('') : '<div style="color:var(--text3);font-size:11px;text-align:center;padding:12px">Empty</div>'}
+      </div>
+      <div class="pipeline-value"><span>Pipeline value</span><span>$${val.toLocaleString()}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ──
+function openModal(id) {
+  const l = leads.find(x=>x.id===id);
+  if (!l) return;
+  editingId = id;
+  document.getElementById('modal-biz').textContent = l.name || '—';
+  document.getElementById('modal-cat').textContent = [l.category, l.city].filter(Boolean).join(' · ') || '';
+  const val = {receptionist:'AI Receptionist — $497/mo',website:'AI Website — $800/mo',both:'Both — $1,197/mo'};
+  document.getElementById('modal-info-grid').innerHTML = [
+    ['Phone', l.phone ? `<a href="tel:${l.phone}">${l.phone}</a>` : '—'],
+    ['Rating', l.rating ? `★ ${l.rating} (${l.reviews||0} reviews)` : '—'],
+    ['Website', l.website ? `<a href="${l.website}" target="_blank">${l.website}</a>` : '❌ None'],
+    ['Type', l.business_type || '—'],
+    ['Owner', l.owner || '—'],
+    ['Email', l.email ? `<a href="mailto:${l.email}">${l.email}</a>` : '—'],
+    ['Follow-up', l.followup || '—'],
+    ['Added', l.addedAt ? new Date(l.addedAt).toLocaleDateString() : '—'],
+  ].map(([k,v])=>`<div class="modal-field"><div class="mf-label">${k}</div><div class="mf-val">${v}</div></div>`).join('') +
+  `<div class="modal-field" style="grid-column:1/-1"><div class="mf-label">Address</div><div class="mf-val" style="display:flex;align-items:center;gap:10px">${l.address||'—'}${l.location_link?`<a href="${l.location_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:rgba(200,255,0,.1);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:11px;text-decoration:none;white-space:nowrap">📍 Maps</a>`:''}</div></div>` +
+  (l.working_hours ? `<div class="modal-field" style="grid-column:1/-1"><div class="mf-label">Hours</div><div class="mf-val" style="font-size:11px;line-height:1.7;color:var(--text2)">${l.working_hours.split(';').map(h=>h.trim()).filter(Boolean).join('<br>')}</div></div>` : '');
+  document.getElementById('m-temp').value = l.temp || 'cold';
+  document.getElementById('m-interest').value = l.interest || '';
+  document.getElementById('m-followup').value = l.followup || '';
+  document.getElementById('m-value').value = l.value || '';
+  document.getElementById('m-notes').value = l.notes || '';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); editingId = null; }
+function saveLead() {
+  const idx = leads.findIndex(l=>l.id===editingId);
+  if (idx < 0) return;
+  leads[idx].temp = document.getElementById('m-temp').value;
+  leads[idx].interest = document.getElementById('m-interest').value;
+  leads[idx].followup = document.getElementById('m-followup').value;
+  leads[idx].value = document.getElementById('m-value').value;
+  leads[idx].notes = document.getElementById('m-notes').value;
+  save(); closeModal(); toast('Lead updated', 'success');
+  if (document.getElementById('view-leads').classList.contains('active')) renderLeads();
+  if (document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+  if (document.getElementById('view-pipeline').classList.contains('active')) renderPipeline();
+}
+function deleteLead() {
+  if (!confirm('Delete this lead? This cannot be undone.')) return;
+  leads = leads.filter(l=>l.id!==editingId);
+  save(); closeModal(); toast('Lead deleted'); renderLeads();
+}
+
+// ── ADD LEAD ──
+function addLead() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { toast('Business name is required', 'error'); return; }
+  const lead = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    name, category: document.getElementById('f-category').value,
+    phone: document.getElementById('f-phone').value,
+    owner: document.getElementById('f-owner').value,
+    email: document.getElementById('f-email').value,
+    city: document.getElementById('f-city2').value,
+    address: document.getElementById('f-address').value,
+    website: document.getElementById('f-website').value,
+    rating: document.getElementById('f-rating').value,
+    reviews: document.getElementById('f-reviews').value,
+    temp: document.getElementById('f-temp2').value,
+    interest: document.getElementById('f-interest').value,
+    followup: document.getElementById('f-followup').value,
+    value: document.getElementById('f-value').value,
+    notes: document.getElementById('f-notes').value,
+    addedAt: Date.now(), source: 'manual'
+  };
+  leads.unshift(lead);
+  save();
+  ['f-name','f-category','f-phone','f-owner','f-email','f-city2','f-address','f-website','f-rating','f-reviews','f-notes','f-followup','f-value'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-temp2').value='cold';
+  document.getElementById('f-interest').value='';
+  toast('Lead added!', 'success');
+}
+
+// ── CSV IMPORT ──
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { document.getElementById('csv-paste').value = ev.target.result; parseCSV(); };
+  reader.readAsText(file);
+}
+function parseCSV() {
+  const raw = document.getElementById('csv-paste').value.trim();
+  if (!raw) { toast('Paste some CSV data first', 'error'); return; }
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  if (lines.length < 2) { toast('Need at least a header row + one data row', 'error'); return; }
+  function parseRow(line) {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i=0;i<line.length;i++) {
+      const c = line[i];
+      if (c==='"') { inQ=!inQ; } else if (c===','&&!inQ) { result.push(cur.trim()); cur=''; } else cur+=c;
+    }
+    result.push(cur.trim()); return result;
+  }
+  csvHeaders = parseRow(lines[0]);
+  csvRows = lines.slice(1).map(parseRow);
+  document.getElementById('preview-count').textContent = csvRows.length;
+  // Show preview table (first 3 rows)
+  const previewHtml = `<div style="overflow-x:auto"><table style="font-size:11px;width:100%;border-collapse:collapse">
+    <thead><tr>${csvHeaders.map(h=>`<th style="padding:4px 8px;text-align:left;color:var(--text3);border-bottom:1px solid var(--border);font-family:var(--font-mono)">${h}</th>`).join('')}</tr></thead>
+    <tbody>${csvRows.slice(0,3).map(r=>`<tr>${r.map(c=>`<td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap">${c||''}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+  document.getElementById('preview-table-wrap').innerHTML = previewHtml;
+  // Auto-map fields
+  const autoMap = {
+    name: ['name','title','business_name','business name'],
+    phone: ['phone','phone_number','telephone'],
+    website: ['website','site','url','web'],
+    rating: ['rating','score','stars','totalscore'],
+    reviews: ['reviews','reviews_count','review_count','reviewscount'],
+    category: ['category','categories','categorynameen','category_name'],
+    business_type: ['type','subtypes','business_type'],
+    city: ['city','town','municipality'],
+    address: ['address','full_address','street','location'],
+    owner: ['owner','contact','person'],
+    email: ['email','mail'],
+    working_hours: ['working_hours','working_hours_csv_compatible','hours','opening_hours'],
+    location_link: ['location_link','google_maps','maps_url','place_url']
+  };
+  const crmFields = ['name','phone','website','rating','reviews','category','business_type','city','address','owner','email','working_hours','location_link'];
+  const mapped = {};
+  csvHeaders.forEach((h,i)=>{
+    const hk = h.toLowerCase().replace(/\s+/g,'_');
+    for (const [field,variants] of Object.entries(autoMap)) {
+      if (variants.some(v=>hk===v||hk.includes(v)||v.includes(hk.replace(/_/g,'')))) {
+        if (!mapped[field]) mapped[field]=i;
+      }
+    }
+  });
+  fieldMap = mapped;
+  document.getElementById('field-map-rows').innerHTML = crmFields.map(field => `
+    <div class="field-row">
+      <div class="field-label">${field.toUpperCase()}</div>
+      <div class="field-arrow">→</div>
+      <select class="field-select" id="fm-${field}" onchange="fieldMap['${field}']=this.value==='-1'?null:Number(this.value)">
+        <option value="-1">-- skip --</option>
+        ${csvHeaders.map((h,i)=>`<option value="${i}" ${mapped[field]===i?'selected':''}>${h}</option>`).join('')}
+      </select>
+    </div>`).join('');
+  document.getElementById('import-preview').classList.remove('hide');
+}
+
+function importLeads() {
+  let imported = 0; let skipped = 0;
+  csvRows.forEach(row => {
+    const get = field => {
+      const idx = fieldMap[field];
+      return (idx !== undefined && idx !== null && row[idx] !== undefined) ? row[idx].replace(/^["']|["']$/g,'').trim() : '';
+    };
+    const name = get('name');
+    if (!name) { skipped++; return; }
+    leads.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2) + imported,
+      name, phone: get('phone'), website: get('website'), rating: get('rating'),
+      reviews: get('reviews'), category: get('category'), business_type: get('business_type'),
+      city: get('city'), address: get('address'), owner: get('owner'), email: get('email'),
+      working_hours: get('working_hours'), location_link: get('location_link'),
+      temp: 'cold', addedAt: Date.now(), source: 'outscraper'
+    });
+    imported++;
+  });
+  save();
+  document.getElementById('import-preview').classList.add('hide');
+  document.getElementById('csv-paste').value = '';
+  toast(`Imported ${imported} leads${skipped?' ('+skipped+' skipped)':''}`, 'success');
+  showView('leads');
+}
+
+// ── EXPORT ──
+function exportCSV() {
+  if (!leads.length) { toast('No leads to export', 'error'); return; }
+  const headers = ['Name','Category','Type','Phone','Email','Owner','City','Address','Website','Rating','Reviews','WorkingHours','MapsLink','Temperature','Interest','FollowUp','DealValue','Notes','Source','AddedDate'];
+  const rows = leads.map(l=>[l.name,l.category,l.business_type,l.phone,l.email,l.owner,l.city,l.address,l.website,l.rating,l.reviews,l.working_hours,l.location_link,l.temp,l.interest,l.followup,l.value,l.notes,l.source,l.addedAt?new Date(l.addedAt).toLocaleDateString():''].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`));
+  const csv = [headers, ...rows].map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `leados_export_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  toast('Exported!', 'success');
+}
+
+// ── CLEAR ──
+function clearAllLeads() {
+  if (!leads.length) { toast('No leads to clear'); return; }
+  if (!confirm(`Delete all ${leads.length} leads? This cannot be undone.`)) return;
+  leads = []; save();
+  toast('All leads cleared');
+  renderDashboard();
+}
+
+// ── HELPERS ──
+function tempBadge(t) {
+  const map = {hot:'badge-hot',warm:'badge-warm',cold:'badge-cold',closed:'badge-closed',dead:'badge-dead'};
+  return `<span class="badge ${map[t]||'badge-cold'}">${(t||'cold').toUpperCase()}</span>`;
+}
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`; el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>el.remove(), 3000);
+}
+
+// ── DRAG DROP ──
+const iz = document.getElementById('import-zone');
+iz.addEventListener('dragover', e=>{ e.preventDefault(); iz.classList.add('dragover'); });
+iz.addEventListener('dragleave', ()=>iz.classList.remove('dragover'));
+iz.addEventListener('drop', e=>{ e.preventDefault(); iz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f){const r=new FileReader();r.onload=ev=>{document.getElementById('csv-paste').value=ev.target.result;parseCSV();};r.readAsText(f);} });
+
+// ── MODAL CLOSE ON OVERLAY ──
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target===document.getElementById('modal')) closeModal(); });
+
+// ── INIT ──
+renderDashboard();
+updateSidebar();
+</script>
+</body>
+</html>
